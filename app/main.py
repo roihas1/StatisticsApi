@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.PlayerStat.router import router as playerRouter
 from app.TeamStat.router import router as teamRouter
+from app.Team.router import router as teamListRouter
 # Import more routers as your application grows...
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -35,7 +36,11 @@ app.include_router(
     prefix='/api/team',
     tags=["Team Stats Data"]
 )
-
+app.include_router(
+    teamListRouter,
+    prefix="/api/teams",
+    tags=["Team"],
+)
 
 
 @app.get("/")

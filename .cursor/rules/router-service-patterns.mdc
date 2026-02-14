@@ -1,0 +1,17 @@
+---
+description: Router and service layer patterns for StatsService domain modules
+globs: app/**/router.py, app/**/service.py
+alwaysApply: false
+---
+
+# Router and Service Patterns
+
+- **Router**: In `main.py`, import the router from `app.<Domain>.router`. Each router defines `APIRouter(prefix="/...", tags=["..."])`. Mount with `prefix="/api/..."` in main (e.g. `/api/team`, `/api/teams`, `/api/player`). Keep route handlers thin: parse input, call service, return response or raise `HTTPException`.
+
+- **Service**: Put all NBA API and DB logic in the service layer. Two allowed styles:
+  1. **Class + DI**: A service class plus a `getXxxService()` and `Depends(getXxxService)` in routes (see `PlayerStat`).
+  2. **Plain functions**: Async or sync functions in the service module, imported and called from the router (see `TeamStat`, `Team`). Use class + DI when the service needs config (e.g. rate-limit sleep) or reusable state; otherwise plain functions are fine.
+
+- **Async**: Prefer async route handlers for I/O. When calling sync NBA API from async code, use `run_in_executor` or documented `time.sleep` / `asyncio.sleep` for rate limiting (as in `TeamStat` service).
+
+- **Constants**: Shared constants (e.g. `GSW_TEAM_ID`, `CURRENT_SEASON`) belong in the service or a small constants module; do not duplicate them in both router and service.

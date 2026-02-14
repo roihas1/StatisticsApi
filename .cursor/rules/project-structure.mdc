@@ -1,0 +1,33 @@
+---
+description: Project structure and domain layout for StatsService
+alwaysApply: true
+---
+
+# Project Structure
+
+- Application code lives under `app/`. Domain features are **modules** with PascalCase folder names (e.g. `TeamStat`, `Team`, `PlayerStat`).
+
+- Each domain module contains:
+  - **router.py** — FastAPI `APIRouter`; HTTP concerns only; delegates all logic to the service.
+  - **service.py** — Business logic, NBA API calls, and (when needed) DB access via `getDb()` from `app.database`.
+
+- **Shared database**: Use `app.database` only. Call `getDb()` for the DB instance. Use `connectToMongo` and `closeMongoConnection` for lifespan (already wired in `main.py`). Do not create alternate DB connection code in domain modules.
+
+- **Adding a new feature**: Create a new domain folder under `app/` with `router.py` and `service.py`. In `main.py`, import the router and call `app.include_router(router, prefix="/api/...", tags=[...])`.
+
+Layout:
+
+```
+app/
+  main.py           # FastAPI app, lifespan, include_router for each domain
+  database.py       # MongoDB connection, getDb(), connectToMongo, closeMongoConnection
+  TeamStat/
+    router.py
+    service.py
+  Team/
+    router.py
+    service.py
+  PlayerStat/
+    router.py
+    service.py
+```

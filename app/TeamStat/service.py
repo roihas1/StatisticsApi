@@ -51,6 +51,51 @@ def get_boxscore_by_game_id(game_id: str) -> dict:
         print(f"Error fetching game {game_id}: {exc}")
         return {"game_id": game_id, "error": str(exc)}
 
+
+def get_last_night_game_winners(game_date: str | None = None) -> list[dict]:
+    """
+    Return list of {gameId, winnerTeamId} for finished games on the given date.
+    Uses ScoreboardV3 (single API call). Only includes games with gameStatus == 3 (final).
+    """
+    if game_date is None:
+        game_date = (datetime.now() - timedelta(1)).strftime("%Y-%m-%d")
+
+    try:
+        sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=15)
+        sb_data = sb.get_dict()
+        games_list = sb_data.get("scoreboard", {}).get("games", [])
+    except Exception as exc:
+        print(f"Error fetching scoreboard for {game_date}: {exc}")
+        return []
+    results = []
+    for g in games_list:
+        status = g.get("gameStatus") or g.get("game_status")
+        if int(status or 0) != 3:
+            continue
+
+        game_id = g.get("gameId") or g.get("game_id")
+        home_team = g.get("homeTeam") or {}
+        away_team = g.get("awayTeam") or {}
+        home_score = home_team.get("score")
+        away_score = away_team.get("score")
+        home_id = home_team.get("teamId")
+        away_id = away_team.get("teamId")
+
+        if home_score is None and away_score is None:
+            home_score = g.get("homeTeamScore") or g.get("home_score")
+            away_score = g.get("awayTeamScore") or g.get("away_score")
+            home_id = home_id or g.get("homeTeamId") or g.get("home_team_id")
+            away_id = away_id or g.get("awayTeamId") or g.get("away_team_id")
+
+        if game_id is None or home_score is None or away_score is None or home_id is None or away_id is None:
+            continue
+
+        winner_id = str(home_id) if home_score > away_score else str(away_id)
+        results.append({"gameId": str(game_id), "winnerTeamId": winner_id})
+
+    return results
+
+
 async def get_all_boxscores_for_date(game_date: str) -> list[dict]:
     """
     Fetch all box scores for a specific date and store them in MongoDB.

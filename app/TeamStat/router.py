@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime, timedelta
-from .service import get_all_boxscores_for_date, getTeamPlayerStats, testMongoConnection
+from .service import get_all_boxscores_for_date, getTeamPlayerStats, get_last_night_game_winners, testMongoConnection
 
 router = APIRouter(
     prefix="/team-stat",
@@ -39,6 +39,25 @@ async def get_daily_boxscores(
             status_code=500,
             detail=f"Failed to fetch daily scores: {str(exc)}"
         )
+
+
+@router.get("/last-night-winners")
+async def get_last_night_winners(
+    game_date: str = Query(
+        None,
+        description="Date in YYYY-MM-DD format. Defaults to yesterday.",
+    ),
+):
+    """
+    Return last night's game winners with the winning team ID for each finished game.
+    """
+    if not game_date:
+        game_date = (datetime.now() - timedelta(1)).strftime("%Y-%m-%d")
+
+    games = get_last_night_game_winners(game_date)
+    return {"date": game_date, "games": games, "count": len(games)}
+
+
 GSW_TEAM_ID = "1610612744"
 CURRENT_SEASON = "2024-25"
 @router.get("/player-stats")

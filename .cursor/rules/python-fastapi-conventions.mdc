@@ -1,0 +1,39 @@
+---
+description: Python and FastAPI naming, errors, and API style for StatsService
+globs: app/**/*.py
+alwaysApply: false
+---
+
+# Python and FastAPI Conventions
+
+- **Naming**: Use `snake_case` for Python identifiers and filenames. Use `camelCase` for JSON/API request and response fields (e.g. `gameId`, `teamName`, `requestedTeamId`).
+
+- **Errors**: In route handlers, use `HTTPException(status_code=..., detail="...")` for HTTP errors. Do not bare `raise Exception` in route handlers. In services, log or re-raise with clear messages.
+
+- **Docstrings**: Add docstrings to endpoint handlers and to non-trivial service functions (describe what they return and any important side effects).
+
+- **Query params**: Use FastAPI `Query(...)` with a `description` for API docs, e.g. `game_date: str = Query(None, description="Date YYYY-MM-DD")`.
+
+- **Responses**: Use consistent envelopes for list endpoints, e.g. `{"<resource>": list, "count": len(list)}` or `{"status": "success", "date": ..., "game_count": ..., "games": ...}`.
+
+## Examples
+
+**HTTP handling:**
+
+```python
+# BAD
+except Exception as e:
+    raise Exception(str(e))
+
+# GOOD
+except Exception as exc:
+    raise HTTPException(status_code=500, detail=f"Failed to fetch: {str(exc)}")
+```
+
+**Response envelope:**
+
+```python
+# GOOD for list endpoints
+return {"teams": teams_list, "count": len(teams_list)}
+return {"status": "success", "date": game_date, "game_count": len(games), "games": games}
+```
