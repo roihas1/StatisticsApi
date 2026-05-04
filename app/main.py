@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.PlayerStat.router import router as playerRouter
 from app.TeamStat.router import router as teamRouter
 from app.Team.router import router as teamListRouter
+from app.SlateGrading.router import router as slateGradingRouter
 # Import more routers as your application grows...
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -40,6 +41,11 @@ app.include_router(
     teamListRouter,
     prefix="/api/teams",
     tags=["Team"],
+)
+app.include_router(
+    slateGradingRouter,
+    prefix="/api/slate",
+    tags=["Slate Grading"],
 )
 
 
