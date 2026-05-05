@@ -21,7 +21,7 @@ def get_boxscore_by_game_id(game_id: str) -> dict:
     try:
         boxscore = boxscoretraditionalv3.BoxScoreTraditionalV3(
             game_id=game_id,
-            timeout=15
+            timeout=45
         )
         data = boxscore.get_dict()
         game = data.get("boxScoreTraditional")
@@ -61,7 +61,7 @@ def get_last_night_game_winners(game_date: str | None = None) -> list[dict]:
         game_date = (datetime.now() - timedelta(1)).strftime("%Y-%m-%d")
 
     try:
-        sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=15)
+        sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=45)
         sb_data = sb.get_dict()
         games_list = sb_data.get("scoreboard", {}).get("games", [])
     except Exception as exc:
@@ -102,7 +102,7 @@ async def get_all_boxscores_for_date(game_date: str) -> list[dict]:
     """
     # 1. Get the scoreboard for the date
     # Note: scoreboardv3 is a synchronous call in nba_api
-    sb = scoreboardv3.ScoreboardV3(game_date=game_date)
+    sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=45)
     sb_data = sb.get_dict()
     
     games_list = sb_data.get("scoreboard", {}).get("games", [])

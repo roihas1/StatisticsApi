@@ -62,7 +62,7 @@ def _extract_player_stats(player_row: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _fetch_scoreboard_sync(game_date: str) -> dict[str, Any]:
-    sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=15)
+    sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=45)
     return sb.get_dict()
 
 
