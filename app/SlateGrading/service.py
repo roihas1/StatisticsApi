@@ -10,6 +10,7 @@ from nba_api.stats.endpoints import scoreboardv3
 from nba_api.stats.static import players
 
 from app.TeamStat.service import get_boxscore_by_game_id
+from app.nba_retry import run_with_nba_retries
 
 # Rate limit between BoxScoreTraditionalV3 calls (see TeamStat.get_all_boxscores_for_date)
 SLEEP_BETWEEN_BOX_SCORES_SEC = 0.7
@@ -62,8 +63,13 @@ def _extract_player_stats(player_row: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _fetch_scoreboard_sync(game_date: str) -> dict[str, Any]:
-    sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=45)
-    return sb.get_dict()
+    return run_with_nba_retries(
+        lambda: scoreboardv3.ScoreboardV3(
+            game_date=game_date,
+            timeout=45,
+        ).get_dict(),
+        context=f"scoreboard {game_date}",
+    )
 
 
 def _team_display(t: dict[str, Any]) -> str:

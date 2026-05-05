@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from nba_api.stats.endpoints import boxscoretraditionalv3, scoreboardv3
 from nba_api.stats.endpoints import teamplayerdashboard
 from app.database import getDb
+from app.nba_retry import run_with_nba_retries
 
 async def testMongoConnection():
     """Check if the database is reachable."""
@@ -19,11 +20,13 @@ async def testMongoConnection():
 def get_boxscore_by_game_id(game_id: str) -> dict:
     """Fetch final box score for a single NBA game."""
     try:
-        boxscore = boxscoretraditionalv3.BoxScoreTraditionalV3(
-            game_id=game_id,
-            timeout=45
+        data = run_with_nba_retries(
+            lambda: boxscoretraditionalv3.BoxScoreTraditionalV3(
+                game_id=game_id,
+                timeout=45,
+            ).get_dict(),
+            context=f"boxscore game_id={game_id}",
         )
-        data = boxscore.get_dict()
         game = data.get("boxScoreTraditional")
         
         if not game:
@@ -61,8 +64,13 @@ def get_last_night_game_winners(game_date: str | None = None) -> list[dict]:
         game_date = (datetime.now() - timedelta(1)).strftime("%Y-%m-%d")
 
     try:
-        sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=45)
-        sb_data = sb.get_dict()
+        sb_data = run_with_nba_retries(
+            lambda: scoreboardv3.ScoreboardV3(
+                game_date=game_date,
+                timeout=45,
+            ).get_dict(),
+            context=f"scoreboard {game_date}",
+        )
         games_list = sb_data.get("scoreboard", {}).get("games", [])
     except Exception as exc:
         print(f"Error fetching scoreboard for {game_date}: {exc}")
@@ -102,8 +110,13 @@ async def get_all_boxscores_for_date(game_date: str) -> list[dict]:
     """
     # 1. Get the scoreboard for the date
     # Note: scoreboardv3 is a synchronous call in nba_api
-    sb = scoreboardv3.ScoreboardV3(game_date=game_date, timeout=45)
-    sb_data = sb.get_dict()
+    sb_data = run_with_nba_retries(
+        lambda: scoreboardv3.ScoreboardV3(
+            game_date=game_date,
+            timeout=45,
+        ).get_dict(),
+        context=f"scoreboard {game_date}",
+    )
     
     games_list = sb_data.get("scoreboard", {}).get("games", [])
     game_ids = [g["gameId"] for g in games_list]
@@ -157,16 +170,18 @@ async def getTeamPlayerStats(
     """
 
     loop = asyncio.get_event_loop()
-    dashboard = await loop.run_in_executor(
-        None,
-        lambda: teamplayerdashboard.TeamPlayerDashboard(
-            team_id=teamId,
-            season=season,
-            timeout=30
-        )
-    )
 
-    data_dict = dashboard.get_dict()
+    def _fetch_dashboard() -> dict:
+        return run_with_nba_retries(
+            lambda: teamplayerdashboard.TeamPlayerDashboard(
+                team_id=teamId,
+                season=season,
+                timeout=30,
+            ).get_dict(),
+            context=f"TeamPlayerDashboard team_id={teamId}",
+        )
+
+    data_dict = await loop.run_in_executor(None, _fetch_dashboard)
 
     # ======================================================
     # TEAM AVERAGES (NBA already aggregates per game here)
